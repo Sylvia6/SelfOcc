@@ -68,11 +68,15 @@ class nuScenes_One_Frame_Sweeps_Dist:
             sensor_mus=[3.0, 0.5],
             sensor_sigma=0.5,
             ego_centric=False,
+            sem=True,
             **kwargs):
 
         data = mmengine.load(imageset)
-        self.scene_infos = data['infos']
-        self.keyframes = data['metadata']
+        self.scene_infos = {id: data['infos'][id] for id in list(data['infos'].keys())[:2]}
+        self.keyframes = []
+        for frame in data['metadata']:
+            if frame[0] in list(data['infos'].keys())[:2]:
+                self.keyframes.append(frame)
 
         self.data_path = data_path
         self.crop_size = crop_size
@@ -92,6 +96,7 @@ class nuScenes_One_Frame_Sweeps_Dist:
         self.sensor_types = ['CAM_FRONT', 'CAM_FRONT_RIGHT', 'CAM_FRONT_LEFT', 
             'CAM_BACK', 'CAM_BACK_LEFT', 'CAM_BACK_RIGHT']
         self.ego_centric = ego_centric
+        self.sem = sem
 
         if hfai:
             self.img_loader = LoadMultiViewImageFromFilesHF(
@@ -291,12 +296,38 @@ class nuScenes_One_Frame_Sweeps_Dist:
                 'img2lidar': img2ego,
                 'temImg2lidar': temImg2ego,
                 'ego2lidar': np.eye(4)})
-        
+            
         #### 4. read imgs
         input_imgs = self.read_surround_imgs(img_metas['input_imgs_path'], self.input_img_crop_size)
         curr_imgs = self.read_surround_imgs(img_metas['curr_imgs_path'], self.crop_size)
         prev_imgs = self.read_surround_imgs(img_metas['prev_imgs_path'], self.crop_size)
         next_imgs = self.read_surround_imgs(img_metas['next_imgs_path'], self.crop_size)
+
+        if self.sem:
+            sem_path = img_metas['curr_imgs_path'][0].replace("nuscenes", "nuscenes_semantic").replace(".jpg", "_mask.bin")
+            sem_map = np.fromfile(sem_path, dtype=np.int8).reshape(900, 1600)
+            img_metas.update({
+                'sem': sem_map
+            })        
+        # semantic_map = np.array([
+        #         0,   # ignore
+        #         4,   # sedan      -> car
+        #         11,  # highway    -> driveable_surface
+        #         3,   # bus        -> bus
+        #         10,  # truck      -> truck
+        #         14,  # terrain    -> terrain
+        #         16,  # tree       -> vegetation
+        #         13,  # sidewalk   -> sidewalk
+        #         2,   # bicycle    -> bycycle
+        #         1,   # barrier    -> barrier
+        #         7,   # person     -> pedestrian
+        #         15,  # building   -> manmade
+        #         6,   # motorcycle -> motorcycle
+        #         5,   # crane      -> construction_vehicle
+        #         9,   # trailer    -> trailer
+        #         8,   # cone       -> traffic_cone
+        #         17   # sky        -> ignore
+        #     ], dtype=np.int8)
         
         data_tuple = (
             [input_imgs, curr_imgs, prev_imgs, next_imgs], img_metas)
@@ -446,12 +477,12 @@ class nuScenes_One_Frame_Sweeps_Dist:
 
 if __name__ == '__main__':
     import torch
-    dataset = nuScenes_One_Frame_Sweeps(
+    dataset = nuScenes_One_Frame_Sweeps_Dist(
         'data/nuscenes',
         'data/nuscenes_infos_val_temporal.pkl',
     )
 
-    batch = dataset[300]
+    batch = dataset[10]
     imgs, img_metas, points = batch
     curr_imgs, prev_imgs, next_imgs = imgs
 

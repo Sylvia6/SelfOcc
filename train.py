@@ -90,6 +90,7 @@ def main(local_rank, args):
             broadcast_buffers=False,
             find_unused_parameters=find_unused_parameters)
         raw_model = my_model.module
+        logger.info('done ddp model')
     else:
         my_model = my_model.cuda()
         raw_model = my_model
@@ -209,10 +210,10 @@ def main(local_rank, args):
             data_time_e = time.time()
 
             with torch.cuda.amp.autocast(amp):
-                # forward + backward + optimize                
-                if args.dataset == 'nuscenes' and cfg.get('sem', False):
-                    sem_map = forward_openseed_model(openseed_model, curr_imgs[0] * 256., cfg.img_size)
-                    img_metas[0].update({'sem': sem_map})
+                # forward + backward + optimize             
+                # if args.dataset == 'nuscenes' and cfg.get('sem', False):
+                #     # sem_map = forward_openseed_model(openseed_model, curr_imgs[0] * 256., cfg.img_size)
+                #     img_metas[0].update({'sem': sem_map})
                 
                 curr_feats, prev_feats, next_feats = curr_imgs, prev_imgs, next_imgs
 
@@ -321,10 +322,9 @@ def main(local_rank, args):
                 color_imgs = color_imgs.cuda()
                 
                 with torch.cuda.amp.autocast(amp):
-
-                    if args.dataset == 'nuscenes' and cfg.get('sem', False):
-                        sem_map = forward_openseed_model(openseed_model, curr_imgs[0] * 256., cfg.img_size)
-                        img_metas[0].update({'sem': sem_map})
+                    # if args.dataset == 'nuscenes' and cfg.get('sem', False):
+                    #     sem_map = forward_openseed_model(openseed_model, curr_imgs[0] * 256., cfg.img_size)
+                    #     img_metas[0].update({'sem': sem_map})
 
                     curr_feats, prev_feats, next_feats = curr_imgs, prev_imgs, next_imgs
 
