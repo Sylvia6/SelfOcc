@@ -4,7 +4,7 @@
 drive --volume /mnt:/mnt:ro 
 ```
 ```
-source tools/plus_data/plus_env/setup.sh
+./tools/plus_data/plus_env/setup.sh
 ```
 ## Snip
 **from server**
