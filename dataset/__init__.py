@@ -3,6 +3,7 @@ OPENOCC_DATASET = Registry('openocc_dataset')
 OPENOCC_DATAWRAPPER = Registry('openocc_datawrapper')
 
 from .dataset_one_frame_sweeps_dist import nuScenes_One_Frame_Sweeps_Dist
+from .plus_data_one_frame_sweeps_dist import Plus_One_Frame_Sweeps_Dist
 from .dataset_one_frame_eval import nuScenes_One_Frame_Eval
 from .dataset_wrapper_temporal import tpvformer_dataset_nuscenes_temporal, custom_collate_fn_temporal
 from .sampler import CustomDistributedSampler
