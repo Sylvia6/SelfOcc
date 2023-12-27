@@ -1,0 +1,29 @@
+#  nvidia.com/gpu  指定需要的GPU数量
+#  --gpus  不能写all，对应nvidia.com/gpu数量，range从0，${nvidia.com/gpu}-1
+#  resources.requests中定义了容器请求的资源数量，其中“m”为千分之一CPU，既1000m为一个CPU核心；resources.limits中定义了容器的最大资源使用限制，容器无法使用超过此设定的资源数量。
+#  不设定的话，将按需取，CPU和内存的请求和限制不是必需项，可根据任务方式增减此字段。
+apiVersion: v1
+kind: Pod
+metadata:
+  name: lilu-nerf-3090-gpux2
+spec:
+  volumes:
+  - name: mnt
+    hostPath:
+      path: /mnt/
+  hostNetwork: true
+  containers:
+  - name: nerf
+    image: docker.plusai.co:5050/plusai/mmdetection3d:neuralsim
+    volumeMounts:
+    - name: mnt
+      mountPath: /mnt
+    workingDir: /mnt/intel/jupyterhub/lu.li
+    resources:
+      limits:
+        nvidia.com/gpu: 2
+    command: ["sleep", "infinity"]
+  # choices: Always, OnFailure, Never
+  restartPolicy: Never
+  nodeSelector:
+    gpu: "3090"
