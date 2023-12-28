@@ -17,6 +17,12 @@ def get_xyz(pose_dict):
     #return np.array(pose_dict['translation'])
     return np.array(pose_dict)[:3, 3]
 
+def get_intrinsic4x4(intrinsic):
+    intrinsic = np.array(intrinsic)
+    viewpad = np.eye(4)
+    viewpad[:3, :3] = intrinsic[:3, :3] # FIXME(mingyao.li) may be wrong, as the front_right camera is using the rectified coordinate
+    return viewpad
+
 def get_img2global(calib_dict, pose_dict):
     
     cam2img = np.eye(4)
@@ -370,9 +376,9 @@ class Plus_One_Frame_Sweeps_Dist:
             image_paths.append(os.path.join(
                 self.data_path, info_tem["bagname"], cam_info_tem['file_path']))
 
-            temImg2global = cam_info_tem['transform_matrix_vio']
+            temImg2global = cam_info_tem['transform_matrix_vio'] @ np.linalg.inv(get_intrinsic4x4(cam_info_tem["intr"]))
 
-            img2global = cam_info['transform_matrix_vio']
+            img2global = cam_info['transform_matrix_vio'] @ np.linalg.inv(get_intrinsic4x4(cam_info["intr"]))
 
             img2temImg = np.linalg.inv(temImg2global) @ img2global            
             img2temImgs.append(img2temImg)
@@ -394,7 +400,7 @@ class Plus_One_Frame_Sweeps_Dist:
             image_paths.append(os.path.join(
                 self.data_path, info_tem["bagname"], cam_info_tem['file_path']))
 
-            temImg2global = cam_info_tem['transform_matrix_vio']
+            temImg2global = cam_info_tem['transform_matrix_vio'] @ np.linalg.inv(get_intrinsic4x4(cam_info_tem["intr"]))
 
             temImg2lidar = np.linalg.inv(lidar2global) @ temImg2global
             temImg2lidars.append(temImg2lidar)
@@ -427,16 +433,11 @@ class Plus_One_Frame_Sweeps_Dist:
             image_paths.append(
                 os.path.join(self.data_path, bagname, info['data'][cam_type]['file_path']))
             
-
-            img2global = info['data'][cam_type]['transform_matrix_vio']
+            viewpad = get_intrinsic4x4(info['data'][cam_type]['intr'])
+            img2global = info['data'][cam_type]['transform_matrix_vio'] @ np.linalg.inv(viewpad)
             lidar2img = np.linalg.inv(img2global) @ lidar2global
             img2lidar = np.linalg.inv(lidar2global) @ img2global
-
             cam2ego = np.array(info['data'][cam_type]['c2imu'])
-
-            intrinsic = np.array(info['data'][cam_type]['intr'])
-            viewpad = np.eye(4)
-            viewpad[:3, :3] = intrinsic[:3, :3] # FIXME(mingyao.li) may be wrong, as the front_right camera is using the rectified coordinate
 
             lidar2img_rts.append(lidar2img)
             img2lidar_rts.append(img2lidar)
