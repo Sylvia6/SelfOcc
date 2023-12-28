@@ -5,7 +5,7 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: mingyao.li-nerfocc-A6000-gpux1
+  name: mingyao.li-nerfocc-a6000-gpux1
 spec:
   volumes:
   - name: mnt
