@@ -75,7 +75,6 @@ def get_dataloader(
     val_wrapper = OPENOCC_DATAWRAPPER.build(
         val_wrapper_config,
         default_args={'in_dataset': val_dataset})
-    
     train_sampler = val_sampler = None
     if dist:
         if iter_resume:
@@ -90,7 +89,7 @@ def get_dataloader(
         collate_fn=custom_collate_fn_temporal,
         shuffle=False if dist else train_loader["shuffle"],
         sampler=train_sampler,
-        num_workers=train_loader["num_workers"],
+        # num_workers=train_loader["num_workers"],
         pin_memory=True)
     val_dataset_loader = DataLoader(
         dataset=val_wrapper,
@@ -98,7 +97,6 @@ def get_dataloader(
         collate_fn=custom_collate_fn_temporal,
         shuffle=False,
         sampler=val_sampler,
-        num_workers=val_loader["num_workers"],
+        # num_workers=val_loader["num_workers"],
         pin_memory=True)
-
     return train_dataset_loader, val_dataset_loader
