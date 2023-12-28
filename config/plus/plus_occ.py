@@ -4,12 +4,13 @@ _base_ = [
     '../_base_/schedule.py',
 ]
 
-img_size = [768, 1600]
+img_size = [540, 940]
 num_rays = [48, 100]
 amp = False
 max_epochs = 12
 warmup_iters = 1000
-sem = True
+sem = False
+num_cams = 2
 
 multisteplr = True
 multisteplr_config = dict(
@@ -40,8 +41,8 @@ train_dataset_config = dict(
     type='Plus_One_Frame_Sweeps_Dist',
     data_path = data_path,
     imageset = 'random_name', # what?
-    cam_num = 2,
-    crop_size = crop_size,
+    cam_num = num_cams,
+    crop_size = img_size,
     ego_centric=True,
     input_img_crop_size = img_size,
     min_dist = 0.4,
@@ -64,13 +65,13 @@ val_dataset_config = dict(
     data_path = "/mnt/bigfile_2/mingyao.li/plus_occ_data_val",
     imageset = 'random_name', # what?
     cam_num = 2,
-    crop_size = crop_size,
+    crop_size = img_size,
     ego_centric=True,
     input_img_crop_size = img_size,
     min_dist = 0.4,
     max_dist = 20.0,
     strict = False,
-    return_depth = True,
+    return_depth = False,
     eval_depth = 80,
     cur_prob = 1,
     prev_prob = 0.5,
@@ -147,15 +148,15 @@ loss = dict(
         dict(
             type='SecondGradLoss',
             weight=0.01),
-        dict(
-            type='SemCELossMS',
-            weight=0.1,
-            img_size=img_size,
-            ray_resize=num_rays,
-            input_dict={
-                'sem': 'sem',
-                'metas': 'metas',
-                'ms_rays': 'ms_rays'}),
+        #dict(
+        #    type='SemCELossMS',
+        #    weight=0.1,
+        #    img_size=img_size,
+        #    ray_resize=num_rays,
+        #    input_dict={
+        #        'sem': 'sem',
+        #        'metas': 'metas',
+        #        'ms_rays': 'ms_rays'}),
         # dict(
         #     type='AdaptiveSparsityLoss',
         #     weight=0.001,
@@ -235,7 +236,7 @@ self_cross_layer = dict(
         dict(
             type='TPVCrossAttention',
             embed_dims=_dim_,
-            num_cams=6,
+            num_cams=num_cams,
             dropout=0.1,
             batch_first=True,
             num_heads=num_heads,
@@ -287,7 +288,7 @@ model = dict(
         mapping_args=mapping_args,
 
         embed_dims=_dim_,
-        num_cams=6,
+        num_cams=num_cams,
         num_feature_levels=4,
         positional_encoding=dict(
             type='TPVPositionalEncoding',

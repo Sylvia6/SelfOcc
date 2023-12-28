@@ -1,3 +1,4 @@
+import json
 import os, numpy as np, random, mmengine, math
 from mmcv.image.io import imread
 from pyquaternion import Quaternion
@@ -89,7 +90,8 @@ class Plus_One_Frame_Sweeps_Dist:
         #    'CAM_FRONT': sensor_mus[0], 'CAM_FRONT_RIGHT': sensor_mus[1], 'CAM_FRONT_LEFT': sensor_mus[1],
         #    'CAM_BACK': sensor_mus[0], 'CAM_BACK_LEFT': sensor_mus[1], 'CAM_BACK_RIGHT': sensor_mus[1]
         #}
-        #self.sensor_sigma = sensor_sigma
+        self.sensor_sigma = sensor_sigma
+        self.sensor_mus = {"front_left": 0.5, "front_right": 0.5} # TODO(mingyao.li) wtf of the sensor mus?
         self.sensor_types = ['front_left', 'front_right']
         self.num_cams = num_cams
         self.ego_centric = ego_centric
@@ -219,9 +221,11 @@ class Plus_One_Frame_Sweeps_Dist:
         return img_points, depth, mask
     
     def composite_dict(self, anchor_info):
-        datas = []
+        #datas = []
+        infos = []
         for prefix in ['prev_', 'next_']:
-            data = dict()
+            #data = dict()
+            info = dict()
             dists = np.asarray(anchor_info[prefix + 'dists'])
             for sensor_type in self.sensor_types:
                 mu = self.sensor_mus[sensor_type]
@@ -230,9 +234,12 @@ class Plus_One_Frame_Sweeps_Dist:
                 probs = probs / np.sum(probs)
                 idx = np.random.choice(len(dists), p=probs)
                 scene_token, sample_idx = anchor_info[prefix + 'samples'][idx]
+                info = deepcopy(self.scene_infos[scene_token][sample_idx])
+                data = info['data']
                 data.update({sensor_type: self.scene_infos[scene_token][sample_idx]['data'][sensor_type]})
-            datas.append(data)
-        return {'data': datas[0]}, {'data': datas[1]}
+            infos.append(info)
+        return infos
+        #return {'data': datas[0]}, {'data': datas[1]}
 
     def __getitem__(self, index):
         #### 1. get color, temporal_depth choice if necessary
@@ -311,6 +318,7 @@ class Plus_One_Frame_Sweeps_Dist:
             'img2prevImg': prev_dict['img2temImg'],
             'img2nextImg': next_dict['img2temImg'],}
         if self.return_depth:
+            assert False, "do not support for now"
             depth_loc, depth_gt, depth_mask = self.get_depth_from_lidar(
                 info['data']['LIDAR_TOP']['filename'], img_metas['lidar2img'], self.crop_size)
             img_metas.update({
@@ -380,12 +388,11 @@ class Plus_One_Frame_Sweeps_Dist:
 
         lidar2global = info["imu2world"] @ np.array(info["data"][self.ref_sensor]["l2imu"]) 
 
-        bagname = info["bagname"]
         for cam_type in self.sensor_types:
 
             cam_info_tem = info_tem['data'][cam_type]
             image_paths.append(os.path.join(
-                self.data_path, bag_name, cam_info_tem['file_path']))
+                self.data_path, info_tem["bagname"], cam_info_tem['file_path']))
 
             temImg2global = cam_info_tem['transform_matrix_vio']
 
@@ -425,11 +432,11 @@ class Plus_One_Frame_Sweeps_Dist:
             lidar2img = np.linalg.inv(img2global) @ lidar2global
             img2lidar = np.linalg.inv(lidar2global) @ img2global
 
-            cam2ego = np.array(info['data'][cam_type]['cam2imu'])
+            cam2ego = np.array(info['data'][cam_type]['c2imu'])
 
-            intrinsic = info['data'][cam_type]['intr']
+            intrinsic = np.array(info['data'][cam_type]['intr'])
             viewpad = np.eye(4)
-            viewpad[:3, :3] = intrinsic
+            viewpad[:3, :3] = intrinsic[:3, :3] # FIXME(mingyao.li) may be wrong, as the front_right camera is using the rectified coordinate
 
             lidar2img_rts.append(lidar2img)
             img2lidar_rts.append(img2lidar)
